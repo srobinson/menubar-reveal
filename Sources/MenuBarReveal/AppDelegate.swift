@@ -34,13 +34,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     /// Nil when macOS lacks the private call; the shortcut then does nothing.
     private let menuBar = MenuBarOverride.skyLight()
-    /// Hide the shown bar on a click in another app or in this one.
-    private var clickMonitors: [Any] = []
     private var terminationSignal: DispatchSourceSignal?
 
     func applicationDidFinishLaunching(_: Notification) {
         // Clears an override left on by a crash or a kill.
-        hideBar()
+        menuBar?.hide()
         configureTerminationSignal()
         configureStatusItem()
         configureLoginOnFirstLaunch()
@@ -48,22 +46,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_: Notification) {
-        hideBar()
+        menuBar?.hide()
     }
 
     func menuNeedsUpdate(_: NSMenu) {
         loginItem.state = startsAtLogin ? .on : .off
     }
 
-    func menuWillOpen(_: NSMenu) {
-        // The open menu keeps the bar on screen, so the override is set off.
-        if menuBar?.isShown == true { hideBar() }
-    }
-
+    /// While the app runs, only the shortcut shows and hides the bar: clicks and menus leave it as it is.
     private func toggleBar() {
         guard let menuBar else { return }
         if menuBar.isShown {
-            hideBar()
+            menuBar.hide()
         } else {
             showBar(menuBar)
         }
@@ -76,23 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let screens = NSScreen.screens
         let underPointer =
             NSScreen.screensHaveSeparateSpaces ? screens.first { NSMouseInRect(pointer, $0.frame, false) } : nil
-        guard let display = (underPointer ?? screens.first)?.displayID, menuBar.show(on: display) else { return }
-        let clicks: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-        clickMonitors = [
-            NSEvent.addGlobalMonitorForEvents(matching: clicks) { _ in MainActor.assumeIsolated { self.hideBar() } },
-            NSEvent.addLocalMonitorForEvents(matching: clicks) { event in
-                MainActor.assumeIsolated { self.hideBar() }
-                return event
-            },
-        ].compactMap { $0 }
-    }
-
-    private func hideBar() {
-        menuBar?.hide()
-        // After a refused hide, the next click retries it.
-        guard menuBar?.isShown != true else { return }
-        clickMonitors.forEach(NSEvent.removeMonitor)
-        clickMonitors = []
+        guard let display = (underPointer ?? screens.first)?.displayID else { return }
+        menuBar.show(on: display)
     }
 
     /// SIGTERM, as pkill sends, would end the process on the spot. Routed through terminate, it quits the way Quit

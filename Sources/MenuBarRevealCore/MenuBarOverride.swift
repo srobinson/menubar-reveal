@@ -23,11 +23,9 @@ package final class MenuBarOverride {
         self.displays = displays
     }
 
-    /// False, with nothing recorded, when SkyLight refuses.
-    package func show(on display: CGDirectDisplayID) -> Bool {
-        guard set(display, true) else { return false }
-        shownOn = display
-        return true
+    /// Records nothing when SkyLight refuses, so the next press shows again.
+    package func show(on display: CGDirectDisplayID) {
+        if set(display, true) { shownOn = display }
     }
 
     /// Sets the override off on every display, which also clears one a crash left on. If the shown display refuses

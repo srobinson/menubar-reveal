@@ -27,7 +27,7 @@ struct MenuBarOverrideTests {
 
     @Test func showSetsTheOverrideOnOnItsDisplayOnly() {
         let menuBar = makeOverride()
-        #expect(menuBar.show(on: 2))
+        menuBar.show(on: 2)
         #expect(menuBar.isShown)
         #expect(calls.made.map(\.display) == [2])
         #expect(calls.made.map(\.shown) == [true])
@@ -37,7 +37,7 @@ struct MenuBarOverrideTests {
     @Test func aRefusedShowRecordsNothing() {
         let menuBar = makeOverride()
         calls.failing = [2]
-        #expect(!menuBar.show(on: 2))
+        menuBar.show(on: 2)
         #expect(!menuBar.isShown)
     }
 
@@ -52,7 +52,7 @@ struct MenuBarOverrideTests {
 
     @Test func hideSetsEachDisplayOffOnce() {
         let menuBar = makeOverride()
-        #expect(menuBar.show(on: 1))
+        menuBar.show(on: 1)
         calls.made.removeAll()
         menuBar.hide()
         #expect(!menuBar.isShown)
@@ -63,7 +63,7 @@ struct MenuBarOverrideTests {
     /// A display unplugged while the bar shows on it is still set off.
     @Test func hideSetsTheShownDisplayOffAfterItIsGone() {
         let menuBar = makeOverride()
-        #expect(menuBar.show(on: 3))
+        menuBar.show(on: 3)
         menuBar.hide()
         #expect(offDisplays == [1, 2, 3])
     }
@@ -71,7 +71,7 @@ struct MenuBarOverrideTests {
     /// An attached display SkyLight will not clear stays shown, so the next press retries the hide.
     @Test func aFailedClearIsRetried() {
         let menuBar = makeOverride()
-        #expect(menuBar.show(on: 2))
+        menuBar.show(on: 2)
         calls.failing = [2]
         menuBar.hide()
         #expect(menuBar.isShown)
@@ -85,11 +85,11 @@ struct MenuBarOverrideTests {
     /// A detached display SkyLight will not clear is forgotten, so the next press shows the bar on another display.
     @Test func aFailedClearOfADetachedDisplayStillHides() {
         let menuBar = makeOverride()
-        #expect(menuBar.show(on: 3))
+        menuBar.show(on: 3)
         calls.failing = [3]
         menuBar.hide()
         #expect(!menuBar.isShown)
-        #expect(menuBar.show(on: 1))
+        menuBar.show(on: 1)
         #expect(menuBar.isShown)
     }
 }

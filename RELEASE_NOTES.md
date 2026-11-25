@@ -1,7 +1,7 @@
 <!-- The body of the GitHub release for the version below, the page the site's Download button opens; RELEASING.md says when to edit it. -->
 # Menu Bar Reveal 1.0.0
 
-Press your shortcut and the hidden macOS menu bar comes down at once. Press again, or click anywhere, to hide it.
+Press your shortcut and the hidden macOS menu bar comes down. Press it again and it goes away.
 
 We put this together because people have been asking for it for years. Here it is.
 

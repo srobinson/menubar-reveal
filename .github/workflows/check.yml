@@ -1,0 +1,70 @@
+# Lint, unit tests, the universal app build and the release packaging, for changes to anything
+# that goes into the app, its ZIP and DMG, or the scripts that make them.
+name: Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Tests/**"
+      - "Icon/**"
+      - "dmg/**"
+      - "scripts/*.sh"
+      - scripts/render-svg.swift
+      - Package.swift
+      - Makefile
+      - Info.plist
+      - LICENSE
+      - .swift-format
+      - .github/workflows/check.yml
+  pull_request:
+    paths:
+      - "Sources/**"
+      - "Tests/**"
+      - "Icon/**"
+      - "dmg/**"
+      - "scripts/*.sh"
+      - scripts/render-svg.swift
+      - Package.swift
+      - Makefile
+      - Info.plist
+      - LICENSE
+      - .swift-format
+      - .github/workflows/check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-26
+    timeout-minutes: 30
+    # The oldest Xcode the README and RELEASING name, so CI checks the floor they state rather than the runner's
+    # default, which moves. If the image drops it, raise it here and in those two together.
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: swift --version
+      - run: make check
+      # The ad hoc release build: ZIP, DMG and the strict signature check of the app unpacked from each, into dist/ on
+      # the runner. Nothing is published or installed.
+      - run: make release
+
+  shellcheck:
+    # Ubuntu runners come with shellcheck.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: shellcheck --version
+      - run: shellcheck scripts/*.sh

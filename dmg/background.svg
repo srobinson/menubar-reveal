@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="660" height="440" viewBox="0 0 660 440">
+  <!-- Drag to install window background for the release DMG; rendered at 1x and 2x by scripts/render-svg.swift.
+       Mid tone indigo from the icon palette: Finder labels stay legible whether it draws them black or white.
+       Icon centres (170, 180) and (490, 180) match dmg/settings.py. Everything that matters sits above y 280,
+       and the canvas runs taller than the window, because Finder's toolbar, path bar and status bar
+       (user preferences) take a varying share of the window height. -->
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8189AD"/>
+      <stop offset="1" stop-color="#5C6489"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="330" cy="40" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rail">
+      <stop offset="0" stop-color="#3A4168" stop-opacity="0.5"/>
+      <stop offset="0.4" stop-color="#3A4168" stop-opacity="0.5"/>
+      <stop offset="0.6" stop-color="#3A4168" stop-opacity="0.35"/>
+      <stop offset="0.8" stop-color="#3A4168" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#3A4168" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="660" height="440" fill="url(#wash)"/>
+  <rect width="660" height="440" fill="url(#glow)"/>
+  <!-- A soft darker rail from icon to icon gives the opaque white caption 5.8:1 (WCAG AA 4.5:1)
+       and fades out above the Finder labels, which keep the mid tone. -->
+  <ellipse cx="330" cy="192" rx="340" ry="56" fill="url(#rail)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.8">
+    <path d="M272 172 L388 172"/>
+    <path d="M375 159 L388 172 L375 185"/>
+  </g>
+  <text x="330" y="208" text-anchor="middle" font-family=".AppleSystemUIFont" font-size="13" fill="#FFFFFF">Drag to Applications</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The menu bar glyph that AppDelegate.makeIcon draws (Sources/MenuBarReveal/AppDelegate.swift; 18 pt grid,
+       scaled 32x) on a macOS style rounded square. It differs on purpose, snapped to the pixel grid of the 16 and
+       32 px sizes: one glyph unit is 1 px at 32 px, so the bar sits half a unit higher and the chevron one unit
+       higher, their edges land on whole pixels, and the stroke is 2 units rather than 1.8, drawing 1 px at 16 px
+       and 2 px at 32 px. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4C6FFF"/>
+      <stop offset="1" stop-color="#2A2F8F"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="url(#tile)"/>
+  <g transform="translate(224 256) scale(32)" fill="#FFFFFF" stroke="#FFFFFF">
+    <rect x="2" y="2" width="14" height="3.5" rx="1.75" ry="1.75" stroke="none"/>
+    <path d="M5 8 L9 12 L13 8" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

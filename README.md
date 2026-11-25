@@ -1,21 +1,22 @@
 # Menu Bar Reveal
 
-When macOS hides the menu bar, it waits for your pointer before showing it. Press <kbd>⌥</kbd> <kbd>`</kbd> and the bar comes down at once; press again, or click anywhere, to hide it.
+A single icon for your menu bar.
+Choose a shortcut when it first opens, then press it to show your hidden menu bar, and again to hide it.
+
+[![The menu bar comes into view](assets/reveal.gif)](assets/reveal.mp4)
 
 ## Install
 
-**[Download MenuBarReveal.dmg](https://github.com/srobinson/menubar-reveal/releases/latest/download/MenuBarReveal.dmg)**, open it and drag Menu Bar Reveal to Applications. It needs macOS 14 or later, with **Automatically hide and show the menu bar** turned on in System Settings.
+Open the [latest DMG](https://github.com/srobinson/menubar-reveal/releases/latest/download/MenuBarReveal.dmg), drag Menu Bar Reveal into Applications, and open it from there.
 
-The app is not notarized by Apple, so macOS blocks the first open: open it once, close the message, then click **Open Anyway** next to Menu Bar Reveal in System Settings > Privacy & Security.
+The app is not notarized by Apple, so macOS blocks the first open: open it once, close the message, then click **Open Anyway** next to Menu Bar Reveal in System Settings > Privacy & Security, and confirm.
 
-To build it yourself with Xcode 26 or later, run `make install`.
+Set **Automatically hide and show the menu bar** to **Always** in System Settings. See the [release notes](RELEASE_NOTES.md) for compatibility.
 
-## Set your shortcut
+## Why
 
-Click the Menu Bar Reveal icon in the menu bar, choose **Change Shortcut**, and press the keys you want. Esc cancels.
+We built this because we got tired of waiting for the menu bar.
 
-Start at Login is on from the first launch; turn it off in the same menu.
+The [source](Sources/) is here for you or your agent to read. [MIT licence](LICENSE).
 
----
-
-MIT licensed. Made by Stuart Robinson.
+<!-- If you enjoy it, [donate](DONATION_URL). -->

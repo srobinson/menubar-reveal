@@ -2,31 +2,36 @@ import AppKit
 import Carbon.HIToolbox
 import MenuBarRevealCore
 
-/// The Change Shortcut window: the next key pressed in it, with any modifiers or none, becomes the shortcut, and Esc
-/// cancels. It reads key presses only while it is the key window, with the shortcut released so it can be pressed here.
+/// The Change Shortcut window: the next key pressed in it, with any modifiers or none, becomes the shortcut. Esc
+/// cancels; Delete, Forward Delete or the clear button clears the shortcut. It reads key presses only while it is the
+/// key window, with the shortcut released so it can be pressed here.
 @MainActor
 final class ShortcutRecorder: NSObject, NSWindowDelegate {
     private let window = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: 300, height: 110), styleMask: [.titled, .closable], backing: .buffered,
         defer: false)
     private let message = NSTextField(labelWithString: "")
+    private let clearButton = NSButton(
+        image: NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Clear Shortcut")!, target: nil,
+        action: #selector(clear))
     private let hotKey: HotKey
-    /// Gets the recorded shortcut, or nil when the window closes without one.
-    private let onClose: (Shortcut?) -> Void
-    private var recorded: Shortcut?
+    /// Gets the shortcut recorded, or nil when it is cleared.
+    private let onChange: (Shortcut?) -> Void
     private var monitor: Any?
 
-    init(current: Shortcut, hotKey: HotKey, onClose: @escaping (Shortcut?) -> Void) {
+    init(hotKey: HotKey, onChange: @escaping (Shortcut?) -> Void) {
         self.hotKey = hotKey
-        self.onClose = onClose
+        self.onChange = onChange
         super.init()
 
         let title = NSTextField(labelWithString: "Press a new shortcut")
         title.font = .systemFont(ofSize: 15, weight: .semibold)
-        message.stringValue = "Current: \(current.label). Press Esc to cancel."
         message.textColor = .secondaryLabelColor
+        clearButton.target = self
+        clearButton.isBordered = false
+        clearButton.contentTintColor = .secondaryLabelColor
 
-        let stack = NSStackView(views: [title, message])
+        let stack = NSStackView(views: [title, NSStackView(views: [message, clearButton])])
         stack.orientation = .vertical
         stack.spacing = 6
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 20, bottom: 24, right: 20)
@@ -37,7 +42,9 @@ final class ShortcutRecorder: NSObject, NSWindowDelegate {
         window.center()
     }
 
-    func focus() {
+    func show(current: Shortcut?) {
+        message.stringValue = current.map { "Current: \($0.label). Press Esc to cancel." } ?? "Press Esc to cancel."
+        clearButton.isHidden = current == nil
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
     }
@@ -58,10 +65,7 @@ final class ShortcutRecorder: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_: Notification) {
-        // Closing also resigns key, which then needs no answer.
-        window.delegate = nil
         stopRecording()
-        onClose(recorded)
         // Hands activation back to the app the user came from.
         NSApp.hide(nil)
     }
@@ -72,16 +76,34 @@ final class ShortcutRecorder: NSObject, NSWindowDelegate {
         hotKey.resume()
     }
 
+    @objc private func clear() {
+        hotKey.clear()
+        onChange(nil)
+        window.close()
+    }
+
     private func record(_ event: NSEvent) {
         let candidate = Shortcut(event: event)
-        // Only a bare Esc cancels; with modifiers it is a chord like any other.
-        if candidate == Shortcut(keyCode: kVK_Escape, modifiers: 0) {
+        // Only the bare keys cancel or clear; with modifiers they are chords like any other.
+        switch candidate {
+        case Shortcut(keyCode: kVK_Escape, modifiers: 0):
             window.close()
-        } else if hotKey.replace(with: candidate) {
-            recorded = candidate
-            window.close()
-        } else {
-            message.stringValue = "\(candidate.label) is already in use. Try another."
+        case Shortcut(keyCode: kVK_Delete, modifiers: 0), Shortcut(keyCode: kVK_ForwardDelete, modifiers: 0):
+            clear()
+        default:
+            do {
+                try hotKey.replace(with: candidate)
+                onChange(candidate)
+                window.close()
+            } catch .inUse {
+                message.stringValue = "\(candidate.label) is already in use. Try another."
+                NSAccessibility.post(
+                    element: window, notification: .announcementRequested,
+                    userInfo: [.announcement: message.stringValue, .priority: NSAccessibilityPriorityLevel.high.rawValue])
+            } catch {
+                // HotKey logged it.
+                NSSound.beep()
+            }
         }
     }
 }

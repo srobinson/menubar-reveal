@@ -12,8 +12,7 @@ private let appName =
 @main
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    /// The app has no main nib to make its delegate. The application comes first, as the status item needs it, and
-    /// holds its delegate weakly.
+    /// The app has no main nib, so it makes its delegate here and keeps it alive, as the application holds it weakly.
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()
@@ -25,9 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let menu = NSMenu()
     private let shortcutItem = NSMenuItem(title: "", action: #selector(changeShortcut), keyEquivalent: "")
     private let loginItem = NSMenuItem(title: "Start at Login", action: #selector(toggleLogin), keyEquivalent: "")
+    /// Nil until the user sets one, and after they clear it.
     private var shortcut = Shortcut.load()
-    private var recorder: ShortcutRecorder?
     private lazy var hotKey = HotKey { [unowned self] in toggleBar() }
+    private lazy var recorder = ShortcutRecorder(hotKey: hotKey) { [unowned self] changed in
+        shortcut = changed
+        Shortcut.save(changed)
+        refreshStatusItem()
+    }
     /// Nil when macOS lacks the private call; the shortcut then does nothing.
     private let menuBar = MenuBarOverride.skyLight()
     /// Hide the shown bar on a click in another app or in this one.
@@ -40,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureTerminationSignal()
         configureStatusItem()
         configureLoginOnFirstLaunch()
-        if !hotKey.register(shortcut) { showConflictAlert() }
+        registerShortcut()
     }
 
     func applicationWillTerminate(_: Notification) {
@@ -104,7 +108,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func configureStatusItem() {
-        statusItem.button?.image = makeIcon()
         statusItem.button?.setAccessibilityLabel(appName)
 
         shortcutItem.target = self
@@ -115,7 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate), keyEquivalent: "")
         statusItem.menu = menu
-        refreshShortcutLabels()
+        refreshStatusItem()
         // The labels show the key as the keyboard layout prints it, so they follow a change of input source.
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(inputSourceChanged),
@@ -124,33 +127,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func inputSourceChanged(_: Notification) {
-        refreshShortcutLabels()
+        refreshStatusItem()
     }
 
-    private func refreshShortcutLabels() {
-        let label = shortcut.label
-        statusItem.button?.toolTip = "\(appName) (\(label))"
-        shortcutItem.title = "Change Shortcut (\(label))…"
-    }
-
-    private func makeIcon() -> NSImage {
-        // AppKit may draw the image on any thread, so the drawing block is Sendable rather than main actor isolated.
-        let icon = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { @Sendable _ in
-            NSColor.black.set()
-            NSBezierPath(roundedRect: NSRect(x: 2, y: 12, width: 14, height: 3.5), xRadius: 1.75, yRadius: 1.75).fill()
-
-            let chevron = NSBezierPath()
-            chevron.move(to: NSPoint(x: 5, y: 9))
-            chevron.line(to: NSPoint(x: 9, y: 5))
-            chevron.line(to: NSPoint(x: 13, y: 9))
-            chevron.lineWidth = 1.8
-            chevron.lineCapStyle = .round
-            chevron.lineJoinStyle = .round
-            chevron.stroke()
-            return true
-        }
-        icon.isTemplate = true
-        return icon
+    private func refreshStatusItem() {
+        let label = shortcut.map { " (\($0.label))" } ?? ""
+        statusItem.button?.image = .statusIcon(needsShortcut: shortcut == nil)
+        statusItem.button?.toolTip = appName + label
+        shortcutItem.title = "Change Shortcut\(label)…"
     }
 
     /// Start at Login counts as on once registered, allowed or waiting for approval in Login Items, so choosing it then
@@ -187,19 +171,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func changeShortcut() {
-        if recorder == nil {
-            recorder = ShortcutRecorder(current: shortcut, hotKey: hotKey) { [unowned self] recorded in
-                recorder = nil
-                guard let recorded else { return }
-                shortcut = recorded
-                shortcut.save()
-                refreshShortcutLabels()
-            }
-        }
-        recorder?.focus()
+        recorder.show(current: shortcut)
     }
 
-    private func showConflictAlert() {
+    /// With no shortcut, as on a fresh install, Change Shortcut opens to set one.
+    private func registerShortcut() {
+        guard let shortcut else { return changeShortcut() }
+        do {
+            try hotKey.register(shortcut)
+        } catch .inUse {
+            showConflictAlert(for: shortcut)
+        } catch {
+            // HotKey logged it, and closing Change Shortcut tries it again.
+        }
+    }
+
+    private func showConflictAlert(for shortcut: Shortcut) {
         let alert = NSAlert()
         alert.messageText = "\(shortcut.label) is already in use"
         alert.informativeText = "Choose a different shortcut from the \(appName) menu bar icon."

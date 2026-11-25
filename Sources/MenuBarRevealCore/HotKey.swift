@@ -4,6 +4,14 @@ import os
 
 let hotKeyID = EventHotKeyID(signature: 0x4D42_5256, id: 1)  // "MBRV"
 
+/// Why a chord did not register.
+package enum HotKeyError: Error {
+    /// Another app, or this one, holds the chord.
+    case inUse
+    /// Any other refusal.
+    case failed
+}
+
 /// The app's global shortcut, registered with Carbon, which needs no Accessibility or Input Monitoring permission.
 @MainActor
 package final class HotKey {
@@ -13,24 +21,22 @@ package final class HotKey {
     /// The chord `resume` registers again.
     private var shortcut: Shortcut?
 
-    package var isRegistered: Bool { ref != nil }
+    var isRegistered: Bool { ref != nil }
 
     package init(action: @escaping @MainActor () -> Void) {
         self.action = action
     }
 
-    /// Makes `shortcut` the chord and registers it. False, logged, when Carbon refuses it; `resume` tries again.
-    /// False, with nothing changed, while a chord is registered.
-    package func register(_ shortcut: Shortcut) -> Bool {
-        guard ref == nil else { return false }
+    /// Makes `shortcut` the chord and registers it. A refused chord is still kept for `resume` to try again.
+    package func register(_ shortcut: Shortcut) throws(HotKeyError) {
+        guard ref == nil else { throw .failed }
         self.shortcut = shortcut
-        return replace(with: shortcut)
+        try replace(with: shortcut)
     }
 
-    /// Registers `shortcut` in place of the released chord. False, and the current chord stays, while that chord is
-    /// still registered, as when Carbon would not release it, or when Carbon refuses `shortcut`, logged.
-    package func replace(with shortcut: Shortcut) -> Bool {
-        guard ref == nil, installHandler() else { return false }
+    /// Registers `shortcut` in place of the released chord. On failure the current chord stays.
+    package func replace(with shortcut: Shortcut) throws(HotKeyError) {
+        guard ref == nil, installHandler() else { throw .failed }
         var new: EventHotKeyRef?
         // Exclusive, so Carbon refuses a chord another app holds, and no other app can take this one.
         let status = RegisterEventHotKey(
@@ -38,11 +44,16 @@ package final class HotKey {
             UInt32(kEventHotKeyExclusive), &new)
         guard status == noErr, let new else {
             Logger.shortcut.error("Hot key registration failed: \(status, privacy: .public)")
-            return false
+            throw status == OSStatus(eventHotKeyExistsErr) ? .inUse : .failed
         }
         ref = new
         self.shortcut = shortcut
-        return true
+    }
+
+    /// Releases the chord and forgets it, so `resume` registers nothing.
+    package func clear() {
+        suspend()
+        shortcut = nil
     }
 
     /// Releases the chord, so Change Shortcut can read it as a key press, until `resume`.
@@ -55,7 +66,7 @@ package final class HotKey {
 
     package func resume() {
         guard ref == nil, let shortcut else { return }
-        _ = replace(with: shortcut)
+        try? replace(with: shortcut)
     }
 
     /// A registered hot key without this handler never fires, so each registration retries a failed install.

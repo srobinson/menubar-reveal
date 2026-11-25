@@ -104,10 +104,10 @@ struct HotKeyTests {
         #expect(!hotKey.isRegistered)
     }
 
-    @Test func suspendReleasesTheChordUntilResume() {
+    @Test func suspendReleasesTheChordUntilResume() throws {
         let hotKey = HotKey {}
         defer { release(hotKey) }
-        #expect(hotKey.register(f19))
+        try hotKey.register(f19)
         #expect(isHeld(f19))
         hotKey.suspend()
         #expect(!hotKey.isRegistered && !isHeld(f19))
@@ -116,40 +116,54 @@ struct HotKeyTests {
     }
 
     /// The new chord replaces the old only once the old is released. Still registered, as a failed release leaves it,
-    /// the old chord stays.
+    /// the old chord stays, and the refusal is no conflict.
     @Test(arguments: [false, true])
-    func replaceTakesTheNewChordOnlyOnceTheOldIsReleased(suspended: Bool) {
+    func replaceTakesTheNewChordOnlyOnceTheOldIsReleased(suspended: Bool) throws {
         let hotKey = HotKey {}
         defer { release(hotKey) }
-        #expect(hotKey.register(f19))
-        if suspended { hotKey.suspend() }
-        #expect(hotKey.replace(with: f18) == suspended)
+        try hotKey.register(f19)
+        if suspended {
+            hotKey.suspend()
+            try hotKey.replace(with: f18)
+        } else {
+            #expect(throws: HotKeyError.failed) { try hotKey.replace(with: f18) }
+        }
         hotKey.resume()
         #expect(isHeld(f18) == suspended && isHeld(f19) == !suspended)
     }
 
-    /// The candidate is tried, and its refusal leaves the current chord to come back on resume.
-    @Test func aRefusedChordKeepsTheCurrentOne() {
+    /// A chord another holds is refused as in use, and the current chord comes back on resume.
+    @Test func aChordInUseKeepsTheCurrentOne() throws {
         let other = HotKey {}
         let hotKey = HotKey {}
         defer { [other, hotKey].forEach(release) }
-        #expect(other.register(f18))
-        #expect(hotKey.register(f19))
+        try other.register(f18)
+        try hotKey.register(f19)
         hotKey.suspend()
-        #expect(!hotKey.replace(with: f18))
+        #expect(throws: HotKeyError.inUse) { try hotKey.replace(with: f18) }
         hotKey.resume()
         #expect(hotKey.isRegistered && isHeld(f19))
     }
 
     /// A chord refused at launch is tried again on resume, as Change Shortcut closes.
-    @Test func resumeRetriesARefusedRegistration() {
+    @Test func resumeRetriesARefusedRegistration() throws {
         let other = HotKey {}
         let hotKey = HotKey {}
         defer { [other, hotKey].forEach(release) }
-        #expect(other.register(f19))
-        #expect(!hotKey.register(f19))
+        try other.register(f19)
+        #expect(throws: HotKeyError.inUse) { try hotKey.register(f19) }
         release(other)
         hotKey.resume()
         #expect(hotKey.isRegistered)
+    }
+
+    /// A cleared chord is released and stays so, as Change Shortcut closes after clearing.
+    @Test func clearReleasesTheChordForGood() throws {
+        let hotKey = HotKey {}
+        defer { release(hotKey) }
+        try hotKey.register(f19)
+        hotKey.clear()
+        hotKey.resume()
+        #expect(!hotKey.isRegistered && !isHeld(f19))
     }
 }

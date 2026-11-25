@@ -1,7 +1,7 @@
 <!-- The body of the GitHub release for the version below, the page the site's Download button opens; RELEASING.md says when to edit it. -->
 # Menu Bar Reveal 1.0.0
 
-Press ⌥` and the hidden macOS menu bar comes down at once. Press again, or click anywhere, to hide it.
+Press your shortcut and the hidden macOS menu bar comes down at once. Press again, or click anywhere, to hide it.
 
 We put this together because people have been asking for it for years. Here it is.
 
@@ -15,6 +15,6 @@ macOS 14 or later, Apple silicon or Intel, with **Automatically hide and show th
 2. Open Menu Bar Reveal. macOS says it could not verify the app; close that message.
 3. In System Settings > Privacy & Security, click **Open Anyway** next to Menu Bar Reveal, and confirm.
 
-Change the shortcut from the menu bar icon. Start at Login is on from the first launch.
+Choose your shortcut when the app first opens; change or clear it from the menu bar icon. Start at Login is on from the first launch.
 
 `SHA256SUMS` lists each file's checksum: `grep ' MenuBarReveal.dmg$' SHA256SUMS | shasum -a 256 -c`. Source: tag [v1.0.0](https://github.com/srobinson/menubar-reveal/tree/v1.0.0), MIT licensed.

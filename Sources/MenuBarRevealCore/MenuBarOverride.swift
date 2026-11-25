@@ -30,9 +30,8 @@ package final class MenuBarOverride {
         return true
     }
 
-    /// Sets the override off on every display, whether or not it is shown, so this also clears one a crash left on.
-    /// Where SkyLight refuses to clear the shown display while it is attached, the bar still counts as shown, so the
-    /// next press retries the hide; a detached one is forgotten, so it cannot block another display.
+    /// Sets the override off on every display, which also clears one a crash left on. If the shown display refuses
+    /// and is still attached, the bar stays shown so the next press retries.
     package func hide() {
         let attached = displays()
         for display in Set(attached) where display != shownOn { _ = set(display, false) }

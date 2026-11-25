@@ -35,9 +35,6 @@ package struct Shortcut: Codable, Hashable, Sendable {
     /// Carbon modifier bits: `controlKey`, `optionKey`, `shiftKey` and `cmdKey`.
     package let modifiers: UInt32
 
-    /// ⌥`, the shortcut until the user records one.
-    package static let standard = Shortcut(keyCode: kVK_ANSI_Grave, modifiers: optionKey)
-
     /// Takes Carbon's key code and modifier constants, which Swift imports as Int.
     package init(keyCode: Int, modifiers: Int) {
         self.keyCode = UInt32(keyCode)
@@ -52,22 +49,21 @@ package struct Shortcut: Codable, Hashable, Sendable {
             modifiers: modifierKeys.filter { flags.contains($0.flag) }.reduce(0) { $0 | $1.carbon })
     }
 
-    /// The saved shortcut as it is, or the standard one when none was saved or the saved value does not decode.
-    package static func load(from defaults: UserDefaults = .standard) -> Shortcut {
-        guard let data = defaults.data(forKey: defaultsKey), let saved = try? JSONDecoder().decode(Shortcut.self, from: data)
-        else { return .standard }
-        return saved
+    /// The saved shortcut as it is, or nil when none was saved or the saved value does not decode.
+    package static func load(from defaults: UserDefaults = .standard) -> Shortcut? {
+        defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(Shortcut.self, from: $0) }
     }
 
-    package func save(to defaults: UserDefaults = .standard) {
-        defaults.set(try? JSONEncoder().encode(self), forKey: defaultsKey)
+    /// Saves `shortcut`, or removes the saved one when it is nil.
+    package static func save(_ shortcut: Shortcut?, to defaults: UserDefaults = .standard) {
+        defaults.set(shortcut.flatMap { try? JSONEncoder().encode($0) }, forKey: defaultsKey)
     }
 }
 
 // MARK: - Label
 
 extension Shortcut {
-    /// The modifiers and the key as the current keyboard layout prints it, such as ⌥`.
+    /// The modifiers and the key as the current keyboard layout prints it, such as ⌥⌘B.
     @MainActor package var label: String { label(using: .current) }
 
     @MainActor func label(using layout: KeyboardLayout?) -> String {

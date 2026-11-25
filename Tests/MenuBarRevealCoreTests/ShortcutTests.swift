@@ -17,9 +17,14 @@ private final class ScratchDefaults {
 struct ShortcutLoadingTests {
     private let scratch = ScratchDefaults()
 
-    @Test func nothingSavedGivesTheStandardShortcut() {
-        #expect(Shortcut.load(from: scratch.defaults) == .standard)
-        #expect(Shortcut.standard == Shortcut(keyCode: kVK_ANSI_Grave, modifiers: optionKey))
+    @Test func nothingSavedGivesNoShortcut() {
+        #expect(Shortcut.load(from: scratch.defaults) == nil)
+    }
+
+    @Test func savingNoShortcutRemovesTheSavedOne() {
+        Shortcut.save(Shortcut(keyCode: kVK_ANSI_B, modifiers: cmdKey), to: scratch.defaults)
+        Shortcut.save(nil, to: scratch.defaults)
+        #expect(scratch.defaults.object(forKey: "shortcut") == nil)
     }
 
     /// Any chord saves and loads as it is, with modifiers or none, including values no key press makes.
@@ -32,7 +37,7 @@ struct ShortcutLoadingTests {
         Shortcut(keyCode: 200, modifiers: controlKey | alphaLock),
     ])
     func aSavedShortcutLoads(shortcut: Shortcut) {
-        shortcut.save(to: scratch.defaults)
+        Shortcut.save(shortcut, to: scratch.defaults)
         #expect(Shortcut.load(from: scratch.defaults) == shortcut)
     }
 
@@ -43,9 +48,9 @@ struct ShortcutLoadingTests {
     }
 
     @Test(arguments: ["not json", #"{"keyCode":48}"#, #"{"keyCode":-1,"modifiers":0}"#])
-    func undecodableSavedValueGivesTheStandardShortcut(saved: String) {
+    func undecodableSavedValueGivesNoShortcut(saved: String) {
         scratch.defaults.set(Data(saved.utf8), forKey: "shortcut")
-        #expect(Shortcut.load(from: scratch.defaults) == .standard)
+        #expect(Shortcut.load(from: scratch.defaults) == nil)
     }
 }
 
@@ -70,11 +75,11 @@ struct ShortcutEventTests {
 
 @MainActor
 struct ShortcutLabelTests {
-    /// An installed layout, enabled or not.
+    /// An installed layout, enabled or not, read with its default table whatever keyboard this Mac has.
     private func layout(_ id: String) throws -> KeyboardLayout {
         let filter = [kTISPropertyInputSourceID as String: "com.apple.keylayout.\(id)"] as CFDictionary
         let sources = TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource]
-        return try #require(KeyboardLayout(sources?.first))
+        return try #require(KeyboardLayout(sources?.first, keyboardType: 0))
     }
 
     @Test func modifiersReadInMenuOrder() throws {
@@ -105,9 +110,9 @@ struct ShortcutLabelTests {
         #expect(shortcut.label(using: try layout(layoutID)) == label)
     }
 
-    /// German puts no ` on the standard shortcut's key, so a fixed "⌥`", as 0.1.0 showed, would name a key it lacks.
-    @Test func theStandardShortcutFollowsTheLayout() throws {
-        let label = Shortcut.standard.label(using: try layout("German"))
+    /// German puts no ` on the key US prints it on, so a fixed "⌥`", as 0.1.0 showed, would name a key it lacks.
+    @Test func theGraveKeyFollowsTheLayout() throws {
+        let label = Shortcut(keyCode: kVK_ANSI_Grave, modifiers: optionKey).label(using: try layout("German"))
         #expect(label.hasPrefix("⌥") && label != "⌥`")
     }
 

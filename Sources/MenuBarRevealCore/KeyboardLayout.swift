@@ -6,6 +6,8 @@ import Foundation
 @MainActor
 struct KeyboardLayout {
     private let table: Data
+    /// The physical keyboard, which can pick a different table within the layout.
+    private let keyboardType: UInt32
 
     /// The layout in use. Input methods without a key table of their own, such as Japanese, type through the
     /// ASCII capable layout, so that one names the keys.
@@ -14,9 +16,11 @@ struct KeyboardLayout {
             ?? KeyboardLayout(TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue())
     }
 
-    init?(_ source: TISInputSource?) {
+    /// The keyboard type defaults to the one attached; 0 picks the layout's default table.
+    init?(_ source: TISInputSource?, keyboardType: UInt32 = UInt32(LMGetKbdType())) {
         guard let source, let table = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else { return nil }
         self.table = Unmanaged<CFData>.fromOpaque(table).takeUnretainedValue() as Data
+        self.keyboardType = keyboardType
     }
 
     /// What the key prints with no modifiers. A dead key gives its accent instead of waiting for the next key.
@@ -30,7 +34,7 @@ struct KeyboardLayout {
             var characters = [UniChar](repeating: 0, count: 255)
             var length = 0
             let status = UCKeyTranslate(
-                layout, keyCode, UInt16(kUCKeyActionDisplay), 0, UInt32(LMGetKbdType()),
+                layout, keyCode, UInt16(kUCKeyActionDisplay), 0, keyboardType,
                 OptionBits(kUCKeyTranslateNoDeadKeysMask), &deadKeyState, characters.count, &length, &characters)
             guard status == noErr, length > 0 else { return nil }
             let character = String(utf16CodeUnits: characters, count: length)

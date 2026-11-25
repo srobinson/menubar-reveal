@@ -1,7 +1,12 @@
 # Menu Bar Reveal
 
 A single icon for your menu bar.
-Choose a shortcut when it first opens, then press it to show your hidden menu bar, and again to hide it.
+
+You hid the menu bar to get the room back. Now every time you need it, you push the pointer to the top of the screen and wait.
+
+Menu Bar Reveal gives you a shortcut instead. Press it and the menu bar comes down. Press it again and it goes away.
+
+The first time you open the app, it asks you to pick your shortcut.
 
 ## Install
 
@@ -13,7 +18,7 @@ Set **Automatically hide and show the menu bar** to **Always** in System Setting
 
 ## Why
 
-We built this because we got tired of waiting for the menu bar.
+I built this because I got tired of waiting for the menu bar.
 
 The [source](Sources/) is here for you or your agent to read. [MIT licence](LICENSE).
 

@@ -3,8 +3,6 @@
 A single icon for your menu bar.
 Choose a shortcut when it first opens, then press it to show your hidden menu bar, and again to hide it.
 
-[![The menu bar comes into view](assets/reveal.gif)](assets/reveal.mp4)
-
 ## Install
 
 Open the [latest DMG](https://github.com/srobinson/menubar-reveal/releases/latest/download/MenuBarReveal.dmg), drag Menu Bar Reveal into Applications, and open it from there.

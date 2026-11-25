@@ -45,7 +45,9 @@ final class ShortcutRecorder: NSObject, NSWindowDelegate {
     func show(current: Shortcut?) {
         message.stringValue = current.map { "Current: \($0.label). Press Esc to cancel." } ?? "Press Esc to cancel."
         clearButton.isHidden = current == nil
-        NSApp.activate()
+        // An LSUIElement app opened from Finder starts in the background, and macOS 27 refuses it the cooperative
+        // NSApp.activate(), leaving the window behind the frontmost app and unable to read keys.
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 

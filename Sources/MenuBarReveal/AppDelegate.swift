@@ -5,7 +5,6 @@ import ServiceManagement
 import os
 
 private let loginConfiguredKey = "loginItemConfigured"
-private let shortcutPromptedKey = "shortcutPrompted"
 /// The display name, set once in the Makefile's APP_NAME and read from the bundle.
 private let appName =
     Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? ProcessInfo.processInfo.processName
@@ -175,13 +174,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recorder.show(current: shortcut)
     }
 
-    /// Change Shortcut opens at the first launch only; after that, the marked icon alone shows a missing shortcut. A
-    /// saved shortcut also counts as prompted, so installs from before the marker do not see it again.
+    /// Opening the app again while it runs, as a double click or open does, asks for a missing shortcut too.
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        if shortcut == nil { changeShortcut() }
+        return false
+    }
+
+    /// Whether the system opened the app as a login item, which it marks on the open application event.
+    private var launchedAtLogin: Bool {
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        return event?.eventID == kAEOpenApplication
+            && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+    }
+
+    /// A launch by hand asks for a missing shortcut; at login, the marked icon alone shows it.
     private func registerShortcut() {
-        let prompted = UserDefaults.standard.bool(forKey: shortcutPromptedKey)
-        UserDefaults.standard.set(true, forKey: shortcutPromptedKey)
         guard let shortcut else {
-            if !prompted { changeShortcut() }
+            if !launchedAtLogin { changeShortcut() }
             return
         }
         do {
@@ -197,7 +206,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let alert = NSAlert()
         alert.messageText = "\(shortcut.label) is already in use"
         alert.informativeText = "Choose a different shortcut from the \(appName) menu bar icon."
-        NSApp.activate()
+        // At launch the app is in the background, so it asks to come forward as ShortcutRecorder.show does.
+        NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
 }

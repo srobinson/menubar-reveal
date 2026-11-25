@@ -5,6 +5,7 @@ import ServiceManagement
 import os
 
 private let loginConfiguredKey = "loginItemConfigured"
+private let shortcutPromptedKey = "shortcutPrompted"
 /// The display name, set once in the Makefile's APP_NAME and read from the bundle.
 private let appName =
     Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? ProcessInfo.processInfo.processName
@@ -174,9 +175,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         recorder.show(current: shortcut)
     }
 
-    /// With no shortcut, as on a fresh install, Change Shortcut opens to set one.
+    /// Change Shortcut opens at the first launch only; after that, the marked icon alone shows a missing shortcut. A
+    /// saved shortcut also counts as prompted, so installs from before the marker do not see it again.
     private func registerShortcut() {
-        guard let shortcut else { return changeShortcut() }
+        let prompted = UserDefaults.standard.bool(forKey: shortcutPromptedKey)
+        UserDefaults.standard.set(true, forKey: shortcutPromptedKey)
+        guard let shortcut else {
+            if !prompted { changeShortcut() }
+            return
+        }
         do {
             try hotKey.register(shortcut)
         } catch .inUse {
